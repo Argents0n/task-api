@@ -1,5 +1,5 @@
 from fastapi import FastAPI, HTTPException, status
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 import asyncio
 
 app = FastAPI(title = "Task Manager")
@@ -7,6 +7,13 @@ app = FastAPI(title = "Task Manager")
 class TaskCreate(BaseModel):
     title: str = Field(min_length=1, max_length=200)
     description: str = Field(default = "", max_length=2000)
+
+    @field_validator('title')
+    @classmethod
+    def validate_title(cls, title):
+        if title.startswith(' '):
+            raise ValueError('Title must not start with a space')
+        return title
 
 class Task(BaseModel):
     id: int
@@ -29,13 +36,17 @@ async def health():
 @app.post('/tasks', response_model=Task)
 async def create_task(payload: TaskCreate):
     global next_id
+    if len(tasks)>=100:
+        raise HTTPException(status_code=409, detail= "Task out of range - delete and try again")
     task = Task(id = next_id, title = payload.title, description = payload.description, done = False)
     tasks[task.id] = task
     next_id +=1
     return task
 
 @app.get('/tasks', response_model=list[Task])
-async def list_task():
+async def list_task(done_only : bool = False):
+    if done_only==True:
+        return [task for task in tasks.values() if task.done]
     return list[Task](tasks.values())
 
 @app.get('/tasks/{task_id}', response_model=Task)
