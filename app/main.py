@@ -53,14 +53,14 @@ async def list_task(done_only : bool = False):
 async def get_task(task_id: int) -> Task:
     task = tasks.get(task_id)
     if task is None:
-        raise HTTPException(status_code=404, detail = "Task with this number doesn't exist")
+        raise HTTPException(status_code=404, detail = "task not found")
     return task
 
 @app.patch('/tasks/{task_id}', response_model=Task)
 async def update_task(task_id: int, payload: TaskUpdate) -> Task:
     task = tasks.get(task_id)
     if task is None:
-        raise HTTPException(status_code=404, detail="Task with this number doesn't exist")
+        raise HTTPException(status_code=404, detail="task not found")
     updated = task.model_copy(update = {k: v for k, v in payload.model_dump().items() if v is not None})
     tasks[task_id] = updated
     return updated
@@ -68,7 +68,7 @@ async def update_task(task_id: int, payload: TaskUpdate) -> Task:
 @app.delete('/tasks/{task_id}', status_code = status.HTTP_204_NO_CONTENT)
 async def delete(task_id:int):
     if task_id not in tasks:
-        raise HTTPException(status_code=404, detail = "Task not found")
+        raise HTTPException(status_code=404, detail = "task not found")
     del tasks[task_id]
     return None
 
